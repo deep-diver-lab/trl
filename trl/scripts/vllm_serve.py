@@ -316,23 +316,43 @@ def llm_worker(
     os.environ["VLLM_DP_SIZE"] = str(script_args.data_parallel_size)
     os.environ["VLLM_DP_MASTER_PORT"] = str(master_port)
 
-    llm = LLM(
-        model=script_args.model,
-        revision=script_args.revision,
-        tensor_parallel_size=script_args.tensor_parallel_size,
-        gpu_memory_utilization=script_args.gpu_memory_utilization,
-        enforce_eager=script_args.enforce_eager,
-        dtype=script_args.dtype,
-        # Automatic Prefix Caching caches the KV cache of existing queries, so that a new query can
-        # directly reuse the KV cache if it shares the same prefix with one of the existing queries.
-        # This is particularly useful here because we generate completions from the same prompts.
-        enable_prefix_caching=script_args.enable_prefix_caching,
-        kv_cache_dtype=script_args.kv_cache_dtype,
-        max_model_len=script_args.max_model_len,
-        worker_extension_cls="trl.scripts.vllm_serve.WeightSyncWorkerExtension",
-        trust_remote_code=script_args.trust_remote_code,
-        model_impl=script_args.vllm_model_impl,
-    )
+    if "gemma-3" in script_args.model:
+        llm = LLM(
+            model=script_args.model,
+            revision=script_args.revision,
+            tensor_parallel_size=script_args.tensor_parallel_size,
+            gpu_memory_utilization=script_args.gpu_memory_utilization,
+            enforce_eager=script_args.enforce_eager,
+            dtype=script_args.dtype,
+            # Automatic Prefix Caching caches the KV cache of existing queries, so that a new query can
+            # directly reuse the KV cache if it shares the same prefix with one of the existing queries.
+            # This is particularly useful here because we generate completions from the same prompts.
+            enable_prefix_caching=script_args.enable_prefix_caching,
+            kv_cache_dtype=script_args.kv_cache_dtype,
+            max_model_len=script_args.max_model_len,
+            worker_extension_cls="trl.scripts.vllm_serve.WeightSyncWorkerExtension",
+            trust_remote_code=script_args.trust_remote_code,
+            model_impl=script_args.vllm_model_impl,
+            hf_overrides={ "architectures": ["Gemma3ForCausalLM"]}
+        )        
+    else: 
+        llm = LLM(
+            model=script_args.model,
+            revision=script_args.revision,
+            tensor_parallel_size=script_args.tensor_parallel_size,
+            gpu_memory_utilization=script_args.gpu_memory_utilization,
+            enforce_eager=script_args.enforce_eager,
+            dtype=script_args.dtype,
+            # Automatic Prefix Caching caches the KV cache of existing queries, so that a new query can
+            # directly reuse the KV cache if it shares the same prefix with one of the existing queries.
+            # This is particularly useful here because we generate completions from the same prompts.
+            enable_prefix_caching=script_args.enable_prefix_caching,
+            kv_cache_dtype=script_args.kv_cache_dtype,
+            max_model_len=script_args.max_model_len,
+            worker_extension_cls="trl.scripts.vllm_serve.WeightSyncWorkerExtension",
+            trust_remote_code=script_args.trust_remote_code,
+            model_impl=script_args.vllm_model_impl,
+        )
 
     # Send ready signal to parent process
     connection.send({"status": "ready"})
